@@ -4,11 +4,7 @@ Modern administrative panel built as a **Frontend Developer (React / Next.js)** 
 
 ## Live Demo
 
-> Deploy to [Vercel](https://vercel.com) and paste the URL here before submission.
-
-```bash
-npm run build && vercel --prod
-```
+**[https://sass-dashboard-henna.vercel.app/](https://sass-dashboard-henna.vercel.app/)**
 
 ## Quick Start
 
