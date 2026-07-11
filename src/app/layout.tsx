@@ -41,7 +41,7 @@ export default async function RootLayout({
         <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
       </head>
       <body className="min-h-full">
-        <NextIntlClientProvider messages={messages}>
+        <NextIntlClientProvider locale={locale} messages={messages}>
           <LocaleSync />
           <QueryProvider>
             <ThemeProvider>{children}</ThemeProvider>

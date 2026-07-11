@@ -29,6 +29,8 @@ const languages = [
 export function SettingsPage() {
   const t = useTranslations("settings");
   const { locale, switchLocale } = useSwitchLocale();
+  const storedLocale = useSettingsStore((s) => s.locale);
+  const activeLocale = storedLocale || locale;
   const [profileOpen, setProfileOpen] = useState(false);
 
   const {
@@ -132,7 +134,7 @@ export function SettingsPage() {
             </div>
             <div className="grid grid-cols-2 gap-3">
               {languages.map((lang) => {
-                const isActive = locale === lang.value;
+                const isActive = activeLocale === lang.value;
                 return (
                   <button
                     key={lang.value}
