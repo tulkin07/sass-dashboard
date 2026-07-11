@@ -1,17 +1,20 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import Image from "next/image";
 import { useMemo, useState } from "react";
-import { ArrowUpDown, Search, Star } from "lucide-react";
+import { LayoutGrid, List, Star } from "lucide-react";
 import { fetchProducts, fetchProductCategories } from "@/shared/api/products";
 import { queryKeys } from "@/shared/config/query-keys";
 import { DEFAULT_PAGE_SIZE } from "@/shared/config/constants";
-import { formatCurrency, calculateDiscountedPrice } from "@/shared/lib/utils";
+import {
+  formatCurrency,
+  calculateDiscountedPrice,
+  cn,
+} from "@/shared/lib/utils";
 import { Badge } from "@/shared/ui/badge";
-import { Input } from "@/shared/ui/input";
-import { Pagination } from "@/shared/ui/pagination";
+import { Button } from "@/shared/ui/button";
 import {
   Select,
   SelectContent,
@@ -19,28 +22,213 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/shared/ui/select";
-import { ProductCardSkeleton } from "@/shared/ui/skeleton";
+import { PriceRangeFilter } from "@/shared/ui/price-range-slider";
+import {
+  DataTableCard,
+  DataTableFilterSelect,
+  DataTableSearch,
+  DataTableSortSelect,
+  DataTableToolbar,
+  DataTableToolbarGroup,
+  DataTableToolbarRow,
+  tableCellComfortClass,
+  tableHeadClass,
+} from "@/shared/ui/data-table";
+import { ProductCardSkeleton, TableRowSkeleton } from "@/shared/ui/skeleton";
 import { EmptyState } from "@/shared/ui/empty-state";
 import { ErrorState } from "@/shared/ui/error-state";
 import { Card, CardContent } from "@/shared/ui/card";
+import type { Product } from "@/shared/types/api";
 
 type SortField = "title" | "price" | "rating" | "stock";
 type SortOrder = "asc" | "desc";
+type ViewMode = "grid" | "list";
+
+const PRICE_SLIDER_MAX = 2000;
+
+function getStockStatus(stock: number) {
+  if (stock === 0) return { label: "outOfStock" as const, tone: "danger" as const };
+  if (stock < 10) return { label: "lowStock" as const, tone: "warning" as const };
+  return { label: "inStock" as const, tone: "success" as const };
+}
+
+const stockToneClass = {
+  success: "text-success",
+  warning: "text-warning",
+  danger: "text-destructive",
+} as const;
+
+function ProductsViewToggle({
+  view,
+  onChange,
+  gridLabel,
+  listLabel,
+}: {
+  view: ViewMode;
+  onChange: (view: ViewMode) => void;
+  gridLabel: string;
+  listLabel: string;
+}) {
+  return (
+    <div className="flex shrink-0 items-center rounded-lg border border-border bg-background p-0.5">
+      <button
+        type="button"
+        onClick={() => onChange("grid")}
+        className={cn(
+          "inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition-colors",
+          view === "grid"
+            ? "bg-primary/10 text-primary shadow-sm"
+            : "text-muted-foreground hover:text-foreground"
+        )}
+        aria-pressed={view === "grid"}
+      >
+        <LayoutGrid className="h-4 w-4" />
+        {gridLabel}
+      </button>
+      <button
+        type="button"
+        onClick={() => onChange("list")}
+        className={cn(
+          "inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition-colors",
+          view === "list"
+            ? "bg-primary/10 text-primary shadow-sm"
+            : "text-muted-foreground hover:text-foreground"
+        )}
+        aria-pressed={view === "list"}
+      >
+        <List className="h-4 w-4" />
+        {listLabel}
+      </button>
+    </div>
+  );
+}
+
+function ProductsPagination({
+  currentPage,
+  totalPages,
+  pageSize,
+  totalItems,
+  onPageChange,
+  onPageSizeChange,
+  showingLabel,
+  perPageLabel,
+  previousLabel,
+  nextLabel,
+}: {
+  currentPage: number;
+  totalPages: number;
+  pageSize: number;
+  totalItems: number;
+  onPageChange: (page: number) => void;
+  onPageSizeChange: (size: number) => void;
+  showingLabel: string;
+  perPageLabel: string;
+  previousLabel: string;
+  nextLabel: string;
+}) {
+  const pageNumbers = useMemo(() => {
+    if (totalPages <= 7) {
+      return Array.from({ length: totalPages }, (_, i) => i + 1);
+    }
+
+    const pages = new Set<number>([1, totalPages, currentPage]);
+    if (currentPage > 1) pages.add(currentPage - 1);
+    if (currentPage < totalPages) pages.add(currentPage + 1);
+    if (currentPage > 2) pages.add(currentPage - 2);
+    if (currentPage < totalPages - 1) pages.add(currentPage + 2);
+
+    return Array.from(pages).sort((a, b) => a - b);
+  }, [currentPage, totalPages]);
+
+  return (
+    <div className="flex w-full flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+      <p className="text-sm text-muted-foreground">{showingLabel}</p>
+
+      <div className="flex flex-wrap items-center gap-2 sm:justify-end">
+        <div className="flex items-center gap-1">
+          <Button
+            variant="outline"
+            size="icon"
+            className="h-9 w-9 rounded-lg"
+            onClick={() => onPageChange(currentPage - 1)}
+            disabled={currentPage <= 1}
+            aria-label={previousLabel}
+          >
+            ‹
+          </Button>
+
+          {pageNumbers.map((page, index) => {
+            const prev = pageNumbers[index - 1];
+            const showEllipsis = prev !== undefined && page - prev > 1;
+
+            return (
+              <span key={page} className="flex items-center gap-1">
+                {showEllipsis && (
+                  <span className="px-1 text-sm text-muted-foreground">…</span>
+                )}
+                <Button
+                  variant={page === currentPage ? "default" : "outline"}
+                  size="sm"
+                  className={cn(
+                    "h-9 min-w-9 rounded-lg px-2",
+                    page === currentPage && "shadow-sm"
+                  )}
+                  onClick={() => onPageChange(page)}
+                  aria-current={page === currentPage ? "page" : undefined}
+                >
+                  {page}
+                </Button>
+              </span>
+            );
+          })}
+
+          <Button
+            variant="outline"
+            size="icon"
+            className="h-9 w-9 rounded-lg"
+            onClick={() => onPageChange(currentPage + 1)}
+            disabled={currentPage >= totalPages || totalPages === 0}
+            aria-label={nextLabel}
+          >
+            ›
+          </Button>
+        </div>
+
+        <Select
+          value={String(pageSize)}
+          onValueChange={(value) => onPageSizeChange(Number(value))}
+        >
+          <SelectTrigger className="h-9 w-[96px] rounded-lg" aria-label={perPageLabel}>
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {[5, 10, 20, 30, 50].map((size) => (
+              <SelectItem key={size} value={String(size)}>
+                {size} {perPageLabel}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+    </div>
+  );
+}
 
 export function ProductsGrid() {
   const t = useTranslations("products");
   const tc = useTranslations("common");
+  const locale = useLocale();
 
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
   const [category, setCategory] = useState("all");
-  const [minPrice, setMinPrice] = useState("");
-  const [maxPrice, setMaxPrice] = useState("");
+  const [priceRange, setPriceRange] = useState<[number, number]>([0, PRICE_SLIDER_MAX]);
   const [minRating, setMinRating] = useState("all");
   const [sortField, setSortField] = useState<SortField>("title");
-  const [sortOrder, setSortOrder] = useState<SortOrder>("asc");
+  const [sortOrder, setSortOrder] = useState<SortOrder>("desc");
+  const [view, setView] = useState<ViewMode>("list");
 
   const searchTimeout = useMemo(() => {
     let timer: ReturnType<typeof setTimeout>;
@@ -79,12 +267,10 @@ export function ProductsGrid() {
 
     let products = [...data.products];
 
-    if (minPrice) {
-      products = products.filter((p) => p.price >= Number(minPrice));
-    }
-    if (maxPrice) {
-      products = products.filter((p) => p.price <= Number(maxPrice));
-    }
+    products = products.filter(
+      (p) => p.price >= priceRange[0] && p.price <= priceRange[1]
+    );
+
     if (minRating !== "all") {
       products = products.filter((p) => p.rating >= Number(minRating));
     }
@@ -108,183 +294,341 @@ export function ProductsGrid() {
     });
 
     return products;
-  }, [data?.products, minPrice, maxPrice, minRating, sortField, sortOrder]);
+  }, [data?.products, priceRange, minRating, sortField, sortOrder]);
 
   const paginatedProducts = useMemo(() => {
     const start = (page - 1) * pageSize;
     return processedProducts.slice(start, start + pageSize);
   }, [processedProducts, page, pageSize]);
 
-  const totalPages = Math.ceil(processedProducts.length / pageSize);
+  const totalPages = Math.max(1, Math.ceil(processedProducts.length / pageSize));
+  const sortValue = `${sortField}-${sortOrder}`;
+  const start = processedProducts.length > 0 ? (page - 1) * pageSize + 1 : 0;
+  const end = Math.min(page * pageSize, processedProducts.length);
+
+  const handleSortChange = (value: string) => {
+    const [field, order] = value.split("-") as [SortField, SortOrder];
+    setSortField(field);
+    setSortOrder(order);
+    setPage(1);
+  };
 
   if (isError) {
     return <ErrorState onRetry={() => refetch()} retryLabel={tc("retry")} />;
   }
 
   return (
-    <div className="space-y-4">
-      <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-        <div className="relative flex-1 max-w-sm">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            placeholder={t("search")}
-            value={search}
-            onChange={(e) => {
-              setSearch(e.target.value);
-              searchTimeout(e.target.value);
-            }}
-            className="pl-9"
-            aria-label={t("search")}
+    <DataTableCard>
+      <DataTableToolbar>
+        <div className="space-y-3 py-1">
+        <DataTableToolbarRow>
+          <DataTableToolbarGroup className="w-full flex-wrap items-center gap-2 lg:flex-nowrap">
+            <DataTableSearch
+              value={search}
+              onChange={(value) => {
+                setSearch(value);
+                searchTimeout(value);
+              }}
+              placeholder={t("searchByName")}
+              className="w-full max-w-[200px] shrink-0"
+            />
+
+            <DataTableFilterSelect
+              value={category}
+              onChange={(value) => {
+                setCategory(value);
+                setPage(1);
+              }}
+              label={t("category")}
+              options={[
+                { value: "all", label: t("allCategories") },
+                ...(categoriesQuery.data || []).map((cat) => ({
+                  value: cat.slug,
+                  label: cat.name,
+                })),
+              ]}
+            />
+
+            <DataTableFilterSelect
+              value={minRating}
+              onChange={(value) => {
+                setMinRating(value);
+                setPage(1);
+              }}
+              label={t("rating")}
+              options={[
+                { value: "all", label: t("rating") },
+                { value: "3", label: "★ 3+" },
+                { value: "4", label: "★ 4+" },
+                { value: "4.5", label: "★ 4.5+" },
+              ]}
+            />
+
+            <PriceRangeFilter
+              min={0}
+              max={PRICE_SLIDER_MAX}
+              value={priceRange}
+              onChange={(value) => {
+                setPriceRange(value);
+                setPage(1);
+              }}
+              minLabel={t("minPrice")}
+              maxLabel={t("maxPrice")}
+            />
+          </DataTableToolbarGroup>
+        </DataTableToolbarRow>
+
+        <DataTableToolbarRow>
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <span className="font-medium">{t("sortBy")}</span>
+            <DataTableSortSelect
+              value={sortValue}
+              onChange={handleSortChange}
+              label={tc("sort")}
+              options={[
+                { value: "title-desc", label: t("sortNewest") },
+                { value: "title-asc", label: t("sortOldest") },
+                { value: "price-desc", label: t("sortPriceDesc") },
+                { value: "price-asc", label: t("sortPriceAsc") },
+                { value: "rating-desc", label: t("sortRatingDesc") },
+                { value: "stock-asc", label: t("sortStockAsc") },
+              ]}
+            />
+          </div>
+
+          <ProductsViewToggle
+            view={view}
+            onChange={setView}
+            gridLabel={t("gridView")}
+            listLabel={t("listView")}
           />
+        </DataTableToolbarRow>
         </div>
-        <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:items-center">
-          <Select value={category} onValueChange={(v) => { setCategory(v); setPage(1); }}>
-            <SelectTrigger className="w-full sm:w-40" aria-label={t("category")}>
-              <SelectValue placeholder={t("allCategories")} />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">{t("allCategories")}</SelectItem>
-              {(categoriesQuery.data || []).map((cat) => (
-                <SelectItem key={cat.slug} value={cat.slug} className="capitalize">
-                  {cat.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+      </DataTableToolbar>
 
-          <Input
-            type="number"
-            placeholder={t("minPrice")}
-            value={minPrice}
-            onChange={(e) => { setMinPrice(e.target.value); setPage(1); }}
-            className="w-full sm:w-24"
-            aria-label={t("minPrice")}
-          />
-          <Input
-            type="number"
-            placeholder={t("maxPrice")}
-            value={maxPrice}
-            onChange={(e) => { setMaxPrice(e.target.value); setPage(1); }}
-            className="w-full sm:w-24"
-            aria-label={t("maxPrice")}
-          />
-
-          <Select value={minRating} onValueChange={(v) => { setMinRating(v); setPage(1); }}>
-            <SelectTrigger className="w-full sm:w-32" aria-label={t("minRating")}>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">{t("minRating")}</SelectItem>
-              <SelectItem value="3">3+ ⭐</SelectItem>
-              <SelectItem value="4">4+ ⭐</SelectItem>
-              <SelectItem value="4.5">4.5+ ⭐</SelectItem>
-            </SelectContent>
-          </Select>
-
-          <Select
-            value={`${sortField}-${sortOrder}`}
-            onValueChange={(v) => {
-              const [field, order] = v.split("-") as [SortField, SortOrder];
-              setSortField(field);
-              setSortOrder(order);
-            }}
-          >
-            <SelectTrigger className="w-full sm:w-36" aria-label={tc("sort")}>
-              <ArrowUpDown className="h-4 w-4" />
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="title-asc">Name A-Z</SelectItem>
-              <SelectItem value="title-desc">Name Z-A</SelectItem>
-              <SelectItem value="price-asc">Price Low</SelectItem>
-              <SelectItem value="price-desc">Price High</SelectItem>
-              <SelectItem value="rating-desc">Rating High</SelectItem>
-              <SelectItem value="stock-asc">Stock Low</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-      </div>
-
-      {isLoading ? (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-          {Array.from({ length: pageSize }).map((_, i) => (
-            <ProductCardSkeleton key={i} />
-          ))}
-        </div>
-      ) : paginatedProducts.length === 0 ? (
-        <EmptyState title={t("noProducts")} />
-      ) : (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-          {paginatedProducts.map((product) => {
-            const discountedPrice = calculateDiscountedPrice(
-              product.price,
-              product.discountPercentage
-            );
-            const isLowStock = product.stock < 20;
-
-            return (
-              <Card key={product.id} className="overflow-hidden group transition-colors hover:border-primary/30">
-                <div className="relative aspect-square overflow-hidden bg-muted">
-                  <Image
-                    src={product.thumbnail}
-                    alt={product.title}
-                    fill
-                    sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
-                    className="object-cover group-hover:scale-105 transition-transform duration-300"
-                    loading="lazy"
+      {view === "list" ? (
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[760px] border-collapse">
+            <thead>
+              <tr className="border-b border-border bg-muted/30">
+                <th className={cn(tableHeadClass, "pl-5")}>{t("product")}</th>
+                <th className={tableHeadClass}>{t("category")}</th>
+                <th className={tableHeadClass}>{t("price")}</th>
+                <th className={tableHeadClass}>{t("discount")}</th>
+                <th className={tableHeadClass}>{t("rating")}</th>
+                <th className={cn(tableHeadClass, "pr-5")}>{t("stock")}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {isLoading ? (
+                Array.from({ length: pageSize }).map((_, i) => (
+                  <TableRowSkeleton key={i} variant="products" />
+                ))
+              ) : paginatedProducts.length === 0 ? (
+                <tr>
+                  <td colSpan={6} className="px-5 py-12">
+                    <EmptyState title={t("noProducts")} />
+                  </td>
+                </tr>
+              ) : (
+                paginatedProducts.map((product) => (
+                  <ProductListRow
+                    key={product.id}
+                    product={product}
+                    t={t}
+                    locale={locale}
                   />
-                  {product.discountPercentage > 0 && (
-                    <Badge className="absolute top-2 right-2" variant="destructive">
-                      -{Math.round(product.discountPercentage)}%
-                    </Badge>
-                  )}
-                  {isLowStock && (
-                    <Badge className="absolute top-2 left-2" variant="warning">
-                      {t("lowStock")}
-                    </Badge>
-                  )}
-                </div>
-                <CardContent className="p-4 space-y-2">
-                  <p className="font-medium text-sm line-clamp-2">{product.title}</p>
-                  <p className="text-xs text-muted-foreground capitalize">
-                    {product.category.replace(/-/g, " ")}
-                  </p>
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <span className="font-bold">{formatCurrency(discountedPrice)}</span>
-                      {product.discountPercentage > 0 && (
-                        <span className="text-xs text-muted-foreground line-through">
-                          {formatCurrency(product.price)}
-                        </span>
-                      )}
-                    </div>
-                    <div className="flex items-center gap-1 text-xs">
-                      <Star className="h-3 w-3 fill-amber-400 text-amber-400" />
-                      {product.rating}
-                    </div>
-                  </div>
-                  <p className="text-xs text-muted-foreground">
-                    {t("stock")}: {product.stock}
-                  </p>
-                </CardContent>
-              </Card>
-            );
-          })}
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+      ) : (
+        <div className="p-4 md:p-5">
+          {isLoading ? (
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+              {Array.from({ length: pageSize }).map((_, i) => (
+                <ProductCardSkeleton key={i} />
+              ))}
+            </div>
+          ) : paginatedProducts.length === 0 ? (
+            <EmptyState title={t("noProducts")} />
+          ) : (
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+              {paginatedProducts.map((product) => (
+                <ProductGridCard
+                  key={product.id}
+                  product={product}
+                  t={t}
+                  locale={locale}
+                />
+              ))}
+            </div>
+          )}
         </div>
       )}
 
-      <Pagination
-        currentPage={page}
-        totalPages={totalPages}
-        pageSize={pageSize}
-        totalItems={processedProducts.length}
-        onPageChange={setPage}
-        onPageSizeChange={(size) => { setPageSize(size); setPage(1); }}
-        previousLabel={tc("previous")}
-        nextLabel={tc("next")}
-        showingLabel={tc("showing")}
-        ofLabel={tc("of")}
-      />
-    </div>
+      <div className="border-t border-border px-4 py-4 md:px-5">
+        <ProductsPagination
+          currentPage={page}
+          totalPages={totalPages}
+          pageSize={pageSize}
+          totalItems={processedProducts.length}
+          onPageChange={setPage}
+          onPageSizeChange={(size) => {
+            setPageSize(size);
+            setPage(1);
+          }}
+          showingLabel={t("showingProducts", { start, end, total: processedProducts.length })}
+          perPageLabel={t("perPage")}
+          previousLabel={tc("previous")}
+          nextLabel={tc("next")}
+        />
+      </div>
+    </DataTableCard>
+  );
+}
+
+function ProductListRow({
+  product,
+  t,
+  locale,
+}: {
+  product: Product;
+  t: ReturnType<typeof useTranslations<"products">>;
+  locale: string;
+}) {
+  const discountedPrice = calculateDiscountedPrice(
+    product.price,
+    product.discountPercentage
+  );
+  const stockStatus = getStockStatus(product.stock);
+  const categoryLabel = product.category.replace(/-/g, " ");
+  const hasDiscount = product.discountPercentage > 0;
+
+  return (
+    <tr className="border-b border-border/80 transition-colors hover:bg-muted/20">
+      <td className={cn(tableCellComfortClass, "pl-5")}>
+        <div className="flex items-center gap-3">
+          <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-lg bg-muted">
+            <Image
+              src={product.thumbnail}
+              alt={product.title}
+              fill
+              sizes="48px"
+              className="object-cover"
+              loading="lazy"
+            />
+          </div>
+          <div className="min-w-0">
+            <p className="truncate font-semibold text-foreground">{product.title}</p>
+            <p className="truncate text-xs text-muted-foreground">
+              {product.brand || categoryLabel}
+            </p>
+          </div>
+        </div>
+      </td>
+      <td className={cn(tableCellComfortClass, "capitalize text-muted-foreground")}>
+        {categoryLabel}
+      </td>
+      <td className={cn(tableCellComfortClass, "font-semibold tabular-nums")}>
+        {formatCurrency(discountedPrice, locale)}
+      </td>
+      <td className={tableCellComfortClass}>
+        <span
+          className={cn(
+            "inline-flex rounded-full px-2.5 py-0.5 text-xs font-semibold",
+            hasDiscount
+              ? "bg-destructive/12 text-destructive"
+              : "bg-success/12 text-success"
+          )}
+        >
+          {hasDiscount ? `${Math.round(product.discountPercentage)}%` : "0%"}
+        </span>
+      </td>
+      <td className={tableCellComfortClass}>
+        <div className="flex items-center gap-1.5">
+          <Star className="h-4 w-4 fill-amber-400 text-amber-400" />
+          <span className="font-medium tabular-nums">{product.rating.toFixed(1)}</span>
+        </div>
+      </td>
+      <td className={cn(tableCellComfortClass, "pr-5")}>
+        <div className="flex flex-col">
+          <span className={cn("font-bold tabular-nums", stockToneClass[stockStatus.tone])}>
+            {product.stock}
+          </span>
+          <span className={cn("text-xs font-medium capitalize", stockToneClass[stockStatus.tone])}>
+            {t(stockStatus.label)}
+          </span>
+        </div>
+      </td>
+    </tr>
+  );
+}
+
+function ProductGridCard({
+  product,
+  t,
+  locale,
+}: {
+  product: Product;
+  t: ReturnType<typeof useTranslations<"products">>;
+  locale: string;
+}) {
+  const discountedPrice = calculateDiscountedPrice(
+    product.price,
+    product.discountPercentage
+  );
+  const stockStatus = getStockStatus(product.stock);
+  const categoryLabel = product.category.replace(/-/g, " ");
+  const hasDiscount = product.discountPercentage > 0;
+
+  return (
+    <Card className="group overflow-hidden border-border/70 transition-all hover:border-primary/30">
+      <div className="relative aspect-[4/3] overflow-hidden bg-muted/40">
+        <Image
+          src={product.thumbnail}
+          alt={product.title}
+          fill
+          sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
+          className="object-cover transition-transform duration-500 group-hover:scale-105"
+          loading="lazy"
+        />
+        {hasDiscount && (
+          <Badge
+            variant="destructive"
+            className="absolute left-3 top-3 border-0 bg-destructive/90 text-[11px]"
+          >
+            -{Math.round(product.discountPercentage)}%
+          </Badge>
+        )}
+      </div>
+
+      <CardContent className="space-y-3 p-4">
+        <div>
+          <p className="line-clamp-2 font-semibold text-foreground">{product.title}</p>
+          <p className="mt-0.5 text-xs text-muted-foreground">
+            {product.brand || categoryLabel}
+          </p>
+        </div>
+
+        <div className="flex items-center justify-between">
+          <p className="text-lg font-bold tabular-nums">
+            {formatCurrency(discountedPrice, locale)}
+          </p>
+          <div className="flex items-center gap-1">
+            <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
+            <span className="text-sm font-medium">{product.rating.toFixed(1)}</span>
+          </div>
+        </div>
+
+        <div className="flex items-center justify-between border-t border-border/60 pt-3 text-xs">
+          <span className="capitalize text-muted-foreground">{categoryLabel}</span>
+          <span className={cn("font-semibold", stockToneClass[stockStatus.tone])}>
+            {product.stock} · {t(stockStatus.label)}
+          </span>
+        </div>
+      </CardContent>
+    </Card>
   );
 }

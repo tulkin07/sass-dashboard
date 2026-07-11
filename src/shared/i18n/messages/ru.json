@@ -61,7 +61,8 @@
     "product": "Товар",
     "subtitle": "Управление каталогом товаров",
     "addProduct": "Добавить товар",
-    "search": "Поиск...",
+    "search": "Поиск товаров...",
+    "searchByName": "Поиск по названию товара...",
     "createdAt": "Дата создания",
     "publish": "Публикация",
     "published": "Опубликован",
@@ -80,6 +81,7 @@
     "rating": "Рейтинг",
     "stock": "Остаток",
     "discount": "Скидка",
+    "noDiscount": "Без скидки",
     "allCategories": "Все категории",
     "priceRange": "Диапазон цен",
     "minRating": "Мин. рейтинг",
@@ -101,7 +103,10 @@
     "sortPriceDesc": "Цена по убыв.",
     "sortRatingDesc": "Рейтинг выше",
     "sortStockAsc": "Остаток меньше",
-    "sortStockDesc": "Остаток больше"
+    "sortStockDesc": "Остаток больше",
+    "sortBy": "Сортировать:",
+    "showingProducts": "Показано {start}–{end} из {total} товаров",
+    "perPage": "/ стр."
   },
   "orders": {
     "title": "Заказы",
@@ -113,6 +118,7 @@
     "total": "Сумма",
     "status": "Статус",
     "noOrders": "Заказы не найдены",
+    "moreProducts": "ещё товаров",
     "allStatuses": "Все статусы",
     "pending": "Ожидание",
     "processing": "Обработка",
@@ -123,7 +129,8 @@
     "sortOldest": "Сначала старые",
     "sortTotalHigh": "Сумма по убыванию",
     "sortTotalLow": "Сумма по возрастанию",
-    "sortItemsHigh": "Больше товаров"
+    "sortItemsHigh": "Больше товаров",
+    "sortItemsLow": "Меньше товаров"
   },
   "analytics": {
     "title": "Аналитика",

@@ -61,7 +61,8 @@
     "product": "Product",
     "subtitle": "Manage your product catalog",
     "addProduct": "Add product",
-    "search": "Search...",
+    "search": "Search products...",
+    "searchByName": "Search by product name...",
     "createdAt": "Create at",
     "publish": "Publish",
     "published": "Published",
@@ -80,6 +81,7 @@
     "rating": "Rating",
     "stock": "Stock",
     "discount": "Discount",
+    "noDiscount": "No discount",
     "allCategories": "All Categories",
     "priceRange": "Price Range",
     "minRating": "Min Rating",
@@ -101,7 +103,10 @@
     "sortPriceDesc": "Price high",
     "sortRatingDesc": "Rating high",
     "sortStockAsc": "Stock low",
-    "sortStockDesc": "Stock high"
+    "sortStockDesc": "Stock high",
+    "sortBy": "Sort by:",
+    "showingProducts": "Showing {start} to {end} of {total} products",
+    "perPage": "/ page"
   },
   "orders": {
     "title": "Orders",
@@ -113,6 +118,7 @@
     "total": "Total",
     "status": "Status",
     "noOrders": "No orders found",
+    "moreProducts": "more products",
     "allStatuses": "All Statuses",
     "pending": "Pending",
     "processing": "Processing",
@@ -123,7 +129,8 @@
     "sortOldest": "Oldest",
     "sortTotalHigh": "Total high",
     "sortTotalLow": "Total low",
-    "sortItemsHigh": "Most items"
+    "sortItemsHigh": "Most items",
+    "sortItemsLow": "Fewest items"
   },
   "analytics": {
     "title": "Analytics",

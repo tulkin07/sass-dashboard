@@ -132,7 +132,7 @@ export function DataTableToolbarGroup({
   className?: string;
 }) {
   return (
-    <div className={cn("flex w-full flex-wrap items-center gap-2 lg:w-auto lg:flex-nowrap", className)}>
+    <div className={cn("flex w-full flex-wrap items-center gap-2", className)}>
       {children}
     </div>
   );
@@ -192,7 +192,7 @@ export function DataTableSortSelect({
   return (
     <Select value={value} onValueChange={onChange}>
       <SelectTrigger
-        className="h-9 w-auto min-w-[148px] shrink-0 gap-2 rounded-lg border-border bg-background px-3 text-sm shadow-none"
+        className="h-9 w-full min-w-[160px] shrink-0 gap-2 rounded-lg border-border bg-background px-3 text-sm shadow-none sm:w-auto sm:min-w-[180px]"
         aria-label={label}
       >
         <ArrowUpDown className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />

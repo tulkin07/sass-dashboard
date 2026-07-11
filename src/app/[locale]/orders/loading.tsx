@@ -1,22 +1,20 @@
 import { DashboardLayout } from "@/widgets/dashboard-layout/ui/dashboard-layout";
-import { TableRowSkeleton } from "@/shared/ui/skeleton";
+import { TableCardSkeleton } from "@/shared/ui/skeleton";
 
 export default function OrdersLoading() {
   return (
     <DashboardLayout>
-      <div className="mb-5 h-8 w-40 animate-pulse rounded-lg bg-muted md:mb-6" />
-      <div className="rounded-2xl border border-border bg-card">
-        <div className="border-b border-border p-4">
-          <div className="h-9 w-full max-w-md animate-pulse rounded-lg bg-muted" />
-        </div>
-        <table className="w-full">
-          <tbody>
-            {Array.from({ length: 8 }).map((_, i) => (
-              <TableRowSkeleton key={i} columns={6} />
-            ))}
-          </tbody>
-        </table>
-      </div>
+      <PageHeadingSkeleton />
+      <TableCardSkeleton variant="orders" showTabs rows={8} />
     </DashboardLayout>
+  );
+}
+
+function PageHeadingSkeleton() {
+  return (
+    <div className="mb-5 space-y-2 md:mb-6">
+      <div className="h-8 w-32 animate-pulse rounded-lg bg-muted" />
+      <div className="h-4 w-56 animate-pulse rounded-md bg-muted" />
+    </div>
   );
 }

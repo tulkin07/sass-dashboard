@@ -1,7 +1,7 @@
 import { useTranslations } from "next-intl";
 import { DashboardLayout } from "@/widgets/dashboard-layout/ui/dashboard-layout";
 import { PageHeading } from "@/widgets/page-heading/ui/page-heading";
-import { ProductsView } from "@/features/products-view/ui/products-view";
+import { ProductsGrid } from "@/features/products-grid/ui/products-grid";
 
 export default function LocaleProductsPage() {
   const t = useTranslations("products");
@@ -10,14 +10,14 @@ export default function LocaleProductsPage() {
   return (
     <DashboardLayout>
       <PageHeading
-        title={t("listTitle")}
+        title={t("title")}
+        subtitle={t("subtitle")}
         breadcrumbs={[
           { label: tNav("dashboard"), href: "/" },
-          { label: t("product") },
-          { label: t("listTitle") },
+          { label: t("title") },
         ]}
       />
-      <ProductsView />
+      <ProductsGrid />
     </DashboardLayout>
   );
 }

@@ -10,7 +10,6 @@ import { queryKeys } from "@/shared/config/query-keys";
 import { DEFAULT_PAGE_SIZE } from "@/shared/config/constants";
 import { formatCurrency, getOrderStatus, cn } from "@/shared/lib/utils";
 import { StatusBadge } from "@/shared/ui/badge";
-import { Button } from "@/shared/ui/button";
 import { Pagination } from "@/shared/ui/pagination";
 import {
   DataTableCard,
@@ -183,6 +182,7 @@ export function OrdersTable() {
     { value: "total-desc", label: t("sortTotalHigh") },
     { value: "total-asc", label: t("sortTotalLow") },
     { value: "quantity-desc", label: t("sortItemsHigh") },
+    { value: "quantity-asc", label: t("sortItemsLow") },
   ];
 
   const clearFilters = () => {
@@ -233,6 +233,7 @@ export function OrdersTable() {
                 const [field, order] = value.split("-") as [SortField, SortOrder];
                 setSortField(field);
                 setSortOrder(order);
+                setPage(1);
               }}
               label={tc("sort")}
               options={sortOptions}
@@ -255,18 +256,30 @@ export function OrdersTable() {
         <table className="w-full" role="table">
           <thead className="border-b border-border bg-muted/30">
             <tr>
-              <th className={tableHeadClass} scope="col">ID</th>
-              <th className={tableHeadClass} scope="col">{t("customer")}</th>
-              <th className={tableHeadClass} scope="col">{t("products")}</th>
-              <th className={tableHeadClass} scope="col">{t("quantity")}</th>
-              <th className={tableHeadClass} scope="col">{t("total")}</th>
-              <th className={tableHeadClass} scope="col">{t("status")}</th>
+              <th className={tableHeadClass} scope="col">
+                ID
+              </th>
+              <th className={tableHeadClass} scope="col">
+                {t("customer")}
+              </th>
+              <th className={tableHeadClass} scope="col">
+                {t("products")}
+              </th>
+              <th className={tableHeadClass} scope="col">
+                {t("quantity")}
+              </th>
+              <th className={tableHeadClass} scope="col">
+                {t("total")}
+              </th>
+              <th className={tableHeadClass} scope="col">
+                {t("status")}
+              </th>
             </tr>
           </thead>
           <tbody className="divide-y divide-border">
             {isLoading ? (
               Array.from({ length: pageSize }).map((_, i) => (
-                <TableRowSkeleton key={i} columns={6} />
+                <TableRowSkeleton key={i} variant="orders" />
               ))
             ) : paginatedOrders.length === 0 ? (
               <tr>
@@ -281,9 +294,9 @@ export function OrdersTable() {
                   <td className={cellClass}>{order.customerName}</td>
                   <td className={cellClass}>
                     <div className="flex items-center gap-1">
-                      {order.products.slice(0, 3).map((product) => (
+                      {order.products.slice(0, 3).map((product, index) => (
                         <Image
-                          key={product.id}
+                          key={`${order.id}-${product.id}-${index}`}
                           src={product.thumbnail}
                           alt={product.title}
                           width={28}

@@ -415,7 +415,7 @@ export function UsersTable() {
           <tbody className="divide-y divide-border">
             {isLoading ? (
               Array.from({ length: pageSize }).map((_, i) => (
-                <TableRowSkeleton key={i} columns={7} />
+                <TableRowSkeleton key={i} variant="users" />
               ))
             ) : paginatedUsers.length === 0 ? (
               <tr>
