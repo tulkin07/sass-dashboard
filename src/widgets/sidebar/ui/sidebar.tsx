@@ -28,7 +28,7 @@ const iconMap = {
 
 export const SIDEBAR_WIDTH = 220;
 export const SIDEBAR_COLLAPSED_WIDTH = 72;
-export const NAVBAR_HEIGHT = 60;
+export const NAVBAR_HEIGHT = 68;
 
 interface SidebarProps {
   mobileOpen?: boolean;
@@ -91,7 +91,7 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
       id="main-navigation"
       className={cn(
         "fixed left-0 z-30 flex flex-col bg-transparent transition-all duration-300",
-        "top-[calc(60px+env(safe-area-inset-top))] h-[calc(100dvh-60px-env(safe-area-inset-top))]",
+        "top-[calc(68px+env(safe-area-inset-top))] h-[calc(100dvh-68px-env(safe-area-inset-top))]",
         "-translate-x-full lg:translate-x-0",
         mobileOpen && "translate-x-0 border-r border-border bg-background shadow-xl lg:border-0 lg:bg-transparent lg:shadow-none",
         mobileOpen ? "w-[220px]" : isCollapsed ? "w-[220px] lg:w-[72px]" : "w-[220px]"

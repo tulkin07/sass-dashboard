@@ -5,7 +5,7 @@ export default function ProductsLoading() {
   return (
     <DashboardLayout>
       <PageHeadingSkeleton />
-      <TableCardSkeleton variant="products" rows={8} />
+      <TableCardSkeleton variant="products" showTabs rows={8} />
     </DashboardLayout>
   );
 }

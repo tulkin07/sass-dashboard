@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useCallback } from "react";
-import { Sidebar } from "@/widgets/sidebar/ui/sidebar";
+import { Sidebar, NAVBAR_HEIGHT } from "@/widgets/sidebar/ui/sidebar";
 import { Header } from "@/widgets/header/ui/header";
 import { CommandPalette } from "@/features/command-palette/ui/command-palette";
 import { ErrorBoundary } from "@/shared/ui/error-boundary";
@@ -40,7 +40,8 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
 
       {mobileOpen && (
         <div
-          className="fixed inset-0 top-[calc(60px+env(safe-area-inset-top))] z-20 bg-black/40 backdrop-blur-sm lg:hidden"
+          className="fixed inset-0 z-20 bg-black/40 backdrop-blur-sm lg:hidden"
+          style={{ top: `calc(${NAVBAR_HEIGHT}px + env(safe-area-inset-top))` }}
           onClick={closeMobileMenu}
           aria-hidden="true"
         />
@@ -50,9 +51,10 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
 
       <div
         className={cn(
-          "min-h-screen pt-[calc(60px+env(safe-area-inset-top))] transition-all duration-300",
+          "min-h-screen transition-all duration-300",
           collapsed ? "lg:ml-[72px]" : "lg:ml-[220px]"
         )}
+        style={{ paddingTop: `calc(${NAVBAR_HEIGHT}px + env(safe-area-inset-top))` }}
       >
         <main className="mx-auto w-full max-w-[1600px] px-4 py-5 md:px-6 md:py-6 lg:px-8 lg:py-6" role="main">
           <ErrorBoundary>{children}</ErrorBoundary>

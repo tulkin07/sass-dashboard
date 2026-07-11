@@ -230,8 +230,8 @@ export function ChartSkeleton({ height = 220 }: { height?: number }) {
 export function ProductCardSkeleton() {
   return (
     <div className="overflow-hidden rounded-2xl border border-border/60 bg-card">
-      <div className="aspect-[4/3] animate-pulse bg-muted/60" />
-      <div className="space-y-3 p-4">
+      <div className="h-28 animate-pulse bg-muted/60 px-3 pb-2 pt-5 sm:h-32 sm:pt-6" />
+      <div className="space-y-2.5 p-3">
         <Skeleton className="h-3 w-24 rounded-full" />
         <Skeleton className="h-5 w-full" />
         <Skeleton className="h-5 w-4/5" />

@@ -27,12 +27,12 @@ import {
   DataTableCard,
   DataTableFilterSelect,
   DataTableSearch,
-  DataTableSortSelect,
+  DataTableTabs,
   DataTableToolbar,
   DataTableToolbarGroup,
-  DataTableToolbarRow,
   tableCellComfortClass,
   tableHeadClass,
+  type DataTableTab,
 } from "@/shared/ui/data-table";
 import { ProductCardSkeleton, TableRowSkeleton } from "@/shared/ui/skeleton";
 import { EmptyState } from "@/shared/ui/empty-state";
@@ -306,6 +306,18 @@ export function ProductsGrid() {
   const start = processedProducts.length > 0 ? (page - 1) * pageSize + 1 : 0;
   const end = Math.min(page * pageSize, processedProducts.length);
 
+  const sortTabs: DataTableTab[] = useMemo(
+    () => [
+      { value: "title-desc", label: t("sortNewest") },
+      { value: "title-asc", label: t("sortOldest") },
+      { value: "price-desc", label: t("sortPriceDesc") },
+      { value: "price-asc", label: t("sortPriceAsc") },
+      { value: "rating-desc", label: t("sortRatingDesc") },
+      { value: "stock-asc", label: t("sortStockAsc") },
+    ],
+    [t]
+  );
+
   const handleSortChange = (value: string) => {
     const [field, order] = value.split("-") as [SortField, SortOrder];
     setSortField(field);
@@ -319,10 +331,15 @@ export function ProductsGrid() {
 
   return (
     <DataTableCard>
+      <DataTableTabs
+        tabs={sortTabs}
+        value={sortValue}
+        onChange={handleSortChange}
+      />
+
       <DataTableToolbar>
-        <div className="space-y-3 py-1">
-        <DataTableToolbarRow>
-          <DataTableToolbarGroup className="w-full flex-wrap items-center gap-2 lg:flex-nowrap">
+        <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+          <DataTableToolbarGroup className="w-auto min-w-0 flex-1 flex-wrap items-center gap-2">
             <DataTableSearch
               value={search}
               onChange={(value) => {
@@ -376,33 +393,15 @@ export function ProductsGrid() {
               maxLabel={t("maxPrice")}
             />
           </DataTableToolbarGroup>
-        </DataTableToolbarRow>
 
-        <DataTableToolbarRow>
-          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <span className="font-medium">{t("sortBy")}</span>
-            <DataTableSortSelect
-              value={sortValue}
-              onChange={handleSortChange}
-              label={tc("sort")}
-              options={[
-                { value: "title-desc", label: t("sortNewest") },
-                { value: "title-asc", label: t("sortOldest") },
-                { value: "price-desc", label: t("sortPriceDesc") },
-                { value: "price-asc", label: t("sortPriceAsc") },
-                { value: "rating-desc", label: t("sortRatingDesc") },
-                { value: "stock-asc", label: t("sortStockAsc") },
-              ]}
+          <DataTableToolbarGroup className="w-auto shrink-0 justify-end md:ml-4">
+            <ProductsViewToggle
+              view={view}
+              onChange={setView}
+              gridLabel={t("gridView")}
+              listLabel={t("listView")}
             />
-          </div>
-
-          <ProductsViewToggle
-            view={view}
-            onChange={setView}
-            gridLabel={t("gridView")}
-            listLabel={t("listView")}
-          />
-        </DataTableToolbarRow>
+          </DataTableToolbarGroup>
         </div>
       </DataTableToolbar>
 
@@ -585,35 +584,35 @@ function ProductGridCard({
 
   return (
     <Card className="group overflow-hidden border-border/70 transition-all hover:border-primary/30">
-      <div className="relative aspect-[4/3] overflow-hidden bg-muted/40">
+      <div className="relative h-28 overflow-hidden bg-muted/30 px-3 pb-2 pt-5 sm:h-32 sm:pt-6">
         <Image
           src={product.thumbnail}
           alt={product.title}
           fill
-          sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
-          className="object-cover transition-transform duration-500 group-hover:scale-105"
+          sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
+          className="object-contain object-bottom transition-transform duration-500 group-hover:scale-[1.03]"
           loading="lazy"
         />
         {hasDiscount && (
           <Badge
             variant="destructive"
-            className="absolute left-3 top-3 border-0 bg-destructive/90 text-[11px]"
+            className="absolute left-2 top-2 border-0 bg-destructive/90 px-1.5 py-0 text-[10px]"
           >
             -{Math.round(product.discountPercentage)}%
           </Badge>
         )}
       </div>
 
-      <CardContent className="space-y-3 p-4">
+      <CardContent className="space-y-2.5 p-3">
         <div>
-          <p className="line-clamp-2 font-semibold text-foreground">{product.title}</p>
+          <p className="line-clamp-2 text-sm font-semibold text-foreground">{product.title}</p>
           <p className="mt-0.5 text-xs text-muted-foreground">
             {product.brand || categoryLabel}
           </p>
         </div>
 
         <div className="flex items-center justify-between">
-          <p className="text-lg font-bold tabular-nums">
+          <p className="text-base font-bold tabular-nums">
             {formatCurrency(discountedPrice, locale)}
           </p>
           <div className="flex items-center gap-1">
